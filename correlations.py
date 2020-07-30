@@ -14,7 +14,7 @@ import lxml
 def main():
     st.title("Correlations")
     st.write(
-        """ The *Margules* model, *Redlich-Kister Expansion* truncated to two terms, *van Laar* predictive model and the *Truncated Wohls expansion* are implemented here. """
+        """ The *Margules* model, *Redlich-Kister Expansion* truncated to two terms, *van Laar* model and the *Truncated Wohls expansion* are implemented here. """
         r"In case $\alpha$ fits the data with an accuracy of 80% or above, the $\alpha_{GM}$ value is displayed.")
 
     compounds = ['Acetonitrile', 'Acetone', '1,2-Ethanediol', 'Ethanol',
