@@ -1,21 +1,21 @@
 import streamlit as st
 import numpy as np
 from matplotlib import style
-import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 import scipy.constants as constants
-from scipy.special import xlogy
+import scipy.optimize as opt
 from antoine import get_psat
 import lxml
+from plots import isobaricPlots, isothermalPlots
 
 
 def main():
-    st.title('Isothermal Binary VLE Data')
+    st.title('Binary VLE Data')
     st.markdown("Vapor-liquid equlibrium data of 30 important components from "
-                "[Dortmund Data Bank](http://www.ddbst.com/en/EED/VLE/VLEindex.php) can be accessed from here. "
-                "Find out which pair of components have isothermal data available and see the $y-x$, $P-x$ and $G^E-x$ graphs.")
+                "[Dortmund Data Bank](http://www.ddbst.com/en/EED/VLE/VLEindex.php) can be accessed from here. ")
 
+    style.use("classic")
 
     compounds = ['Acetonitrile', 'Acetone', '1,2-Ethanediol', 'Ethanol',
                  'Diethyl ether', 'Ethyl acetate', 'Benzene', '1-Butanol',
@@ -56,32 +56,38 @@ def main():
 
         dataframes = pd.read_html(url)
 
-        isothermal_vledata = []
-        T = []
+        vledata = []
+        S = []
         for i, data in enumerate(dataframes):
             col = data.columns
             if col.dtype == object:
-                if len(col) == 3 and 'P' in col[0] and 'x1' in col[1] and 'y1' in col[2]:
-                    T.append(float(dataframes[i - 1][1]))
-                    isothermal_vledata.append(dataframes[i])
+                if (len(col) == 3 and 'P' in col[0] and 'x1' in col[1] and 'y1' in col[2]) or (
+                        len(col) == 3 and 'T' in col[0] and 'x1' in col[1] and 'y1' in col[2]):
+                    S.append(float(dataframes[i - 1][1]))
+                    vledata.append(dataframes[i])
 
-        if isothermal_vledata == []:
-            st.error('There is no isothermal data available at DDBST')
+        if vledata == []:
+            st.error('Complete VLE data is not available at DDBST')
         else:
-            for i in range(len(T)):
-                st.write('%d)' % (i + 1), 'T = ', T[i], 'K')
-                st.write(isothermal_vledata[i])
-            if len(T) == 1:
+            for i in range(len(S)):
+                if vledata[i].columns[0] == 'P [kPa]':
+                    st.write('%d)' % (i + 1), 'T = ', S[i], 'K')
+                if vledata[i].columns[0] == 'T [K]':
+                    st.write('%d)' % (i + 1), 'P = ', S[i], 'kPa')
+                st.write(vledata[i])
+            if len(S) == 1:
                 choice = 1
             else:
-                choice = st.number_input('Choose a dataset', value=1, min_value=1, max_value=len(T))
+                choice = st.number_input('Choose a dataset', value=1, min_value=1, max_value=len(S))
 
-            if st.button('Go!'):
-                st.info('Analysing dataset %d ...' % choice)
-                P = isothermal_vledata[choice - 1]['P [kPa]']
-                x1 = isothermal_vledata[choice - 1]['x1 [mol/mol]']
-                y1 = isothermal_vledata[choice - 1]['y1 [mol/mol]']
-                T = T[choice - 1]
+            st.info('Analysing dataset %d ...' % choice)
+
+            try:
+                P = vledata[choice - 1]['P [kPa]']
+                x1 = vledata[choice - 1]['x1 [mol/mol]']
+                y1 = vledata[choice - 1]['y1 [mol/mol]']
+                T = S[choice - 1]
+
                 st.write(r'$T = %0.2f K$' % T)
 
                 p1sat = get_psat(compounds[i1], T)
@@ -95,67 +101,37 @@ def main():
                 p1_s = max(p1sat, p2sat)
                 p2_s = min(p1sat, p2sat)
 
-                st.write(r'$p_1^s = %0.3f kPa$' % p1_s)
-                st.write(r'$p_2^s = %0.3f kPa$' % p2_s)
+                fig1, fig2 = isothermalPlots(x1, y1, P, p1_s, p2_s)
+                st.write(fig1, fig2)
+            except:
+                pass
+            try:
+                T = vledata[choice - 1]['T [K]']
+                x1 = vledata[choice - 1]['x1 [mol/mol]']
+                y1 = vledata[choice - 1]['y1 [mol/mol]']
+                P = S[choice - 1]
 
-                x = np.linspace(0, 1, 50)
-                P_raoult = x * p1_s + (1 - x) * p2_s
-                y_raoult = x * p1_s / P_raoult
+                st.write(r'$P = %0.2f kPa$' % P)
 
-                n_points = len(x1) - 1
+                p1sat = get_psat(compounds[i1], T[0])
+                p2sat = get_psat(compounds[i2], T[0])
 
-                try:
-                    if x1[0] == 0 and x1[n_points] != 1:
-                        x1, y1, P = x1[1:], y1[1:], P[1:]
-                    if x1[0] != 0 and x1[n_points] == 1:
-                        x1, y1, P = x1[:n_points], y1[:n_points], P[:n_points]
-                    if x1[0] == 0 and x1[n_points] == 1:
-                        x1, y1, P = x1[1:n_points], y1[1:n_points], P[1:n_points]
-                except KeyError:
-                    pass
+                if p1sat > p2sat:
+                    st.info('The more volatile component is %s' % menu_options[i1])
+                    s1, s2 = compounds[i1], compounds[i2]
+                else:
+                    st.info('The more volatile component is %s' % menu_options[i2])
+                    s1, s2 = compounds[i2], compounds[i1]
 
-                gamma1 = np.divide(P * y1, x1 * p1_s)
-                gamma2 = np.divide(P * (1 - y1), ((1 - x1) * p2_s))
-                G_e = constants.R * T * (xlogy(x1, gamma1) + xlogy(1 - x1, gamma2))
+                p1_s = get_psat(s1, T)
+                p2_s = get_psat(s2, T)
 
-                fig1 = plt.figure(facecolor='white')
-                plt.gca().set_aspect('equal', adjustable='box')
-                plt.title(r"$y-x$")
-                plt.xlim(0, 1)
-                plt.ylim(0, 1)
-                plt.xlabel(r'$x_1$')
-                plt.ylabel(r'$y_1$')
-                plt.scatter(x1, y1)
-                plt.plot(x, y_raoult, label=r"$Raoult's\ Law$", color='black')
-                plt.plot(x, x, color='grey')
-                plt.legend(loc='best', fontsize=10)
-
-                st.write(fig1)
-
-                fig2 = plt.figure(facecolor='white')
-                plt.title(r"$P-x$")
-                plt.xlim(0, 1)
-                plt.ylim(0, 1.2*max(P))
-                plt.xlabel(r'$x_1$')
-                plt.ylabel(r'$P\ (kPa)$')
-                plt.scatter(x1, P)
-                plt.plot(x, P_raoult, color='black', label=r"$Raoult's\ Law$")
-                plt.legend(loc='best', fontsize=10)
-
-                st.write(fig2)
-
-                fig3 = plt.figure(facecolor='white')
-                plt.title(r"$G^E-x$")
-                plt.xlim(0, 1)
-                plt.xlabel(r'$x_1$')
-                plt.ylabel(r'$G^E\ (J/mol)$')
-                plt.scatter(x1, G_e)
-                plt.axhline(0, color='black')
-
-                st.write(fig3)
+                fig1, fig2 = isobaricPlots(x1, y1, T)
+                st.write(fig1, fig2)
+            except:
+                pass
     except:
         ''
-
     st.sidebar.title("Note")
     st.sidebar.info(""" The saturation pressures are obtained from 
-    [DDBST's database](http://ddbonline.ddbst.com/AntoineCalculation/AntoineCalculationCGI.exe?component=Ethanol).""")
+            [DDBST's database](http://ddbonline.ddbst.com/AntoineCalculation/AntoineCalculationCGI.exe?component=Ethanol).""")

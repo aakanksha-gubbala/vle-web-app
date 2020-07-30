@@ -21,3 +21,4 @@ st.sidebar.title("About")
 st.sidebar.info(""" This is an open source project maintained by [kraanky](https://kraanky.github.io/). 
 Here's the [link](https://github.com/kraanky/binary-vle-data) to the source code.""")
 
+

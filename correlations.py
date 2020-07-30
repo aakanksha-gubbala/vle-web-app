@@ -6,14 +6,16 @@ import requests
 import scipy.constants as constants
 from scipy.special import xlogy
 from antoine import get_psat
-import models.margules, models.redlichkister, models.vanlaar, models.alphagm
+from volume import get_volume
+import models.margules, models.redlichkister, models.vanlaar, models.alphagm, models.wohls
 import lxml
 
 
 def main():
     st.title("Correlations")
-    st.write(""" The *Margules* model, *Redlich-Kister Expansion* truncated to two terms and the *Van Laar* predictive model are implemented here. """
-              r"In case $\alpha$ fits the data with an accuracy of 80% or above, the $\alpha_{GM}$ value is displayed.")
+    st.write(
+        """ The *Margules* model, *Redlich-Kister Expansion* truncated to two terms, *van Laar* predictive model and the *Truncated Wohls expansion* are implemented here. """
+        r"In case $\alpha$ fits the data with an accuracy of 80% or above, the $\alpha_{GM}$ value is displayed.")
 
     compounds = ['Acetonitrile', 'Acetone', '1,2-Ethanediol', 'Ethanol',
                  'Diethyl ether', 'Ethyl acetate', 'Benzene', '1-Butanol',
@@ -64,7 +66,7 @@ def main():
                     isothermal_vledata.append(dataframes[i])
 
         if isothermal_vledata == []:
-            st.error('There is no isothermal data available at DDBST')
+            st.error('There is no isothermal data available for this pair of compounds at DDBST')
         else:
             for i in range(len(T)):
                 st.write('%d)' % (i + 1), 'T = ', T[i], 'K')
@@ -86,8 +88,10 @@ def main():
 
             if p1sat > p2sat:
                 st.info('The more volatile component is %s' % menu_options[i1])
+                s1, s2 = compounds[i1], compounds[i2]
             else:
                 st.info('The more volatile component is %s' % menu_options[i2])
+                s1, s2 = compounds[i2], compounds[i1]
 
             p1_s = max(p1sat, p2sat)
             p2_s = min(p1sat, p2sat)
@@ -111,6 +115,9 @@ def main():
             except KeyError:
                 pass
 
+            q1, q2 = get_volume(s1, T), get_volume(s2, T)
+            z1 = x1 * q1 / (x1 * q1 + (1 - x1) * q2)
+
             gamma1 = np.divide(P * y1, x1 * p1_s)
             gamma2 = np.divide(P * (1 - y1), ((1 - x1) * p2_s))
             G_e = constants.R * T * (xlogy(x1, gamma1) + xlogy(1 - x1, gamma2))
@@ -119,40 +126,47 @@ def main():
             if alpha_gm == 0:
                 pass
             else:
-                st.success(r"The geometric mean of $\alpha$ is $\alpha_{GM}=%0.3f$" % alpha_gm)
+                st.success(r"$\alpha_{GM}=%0.3f$" % alpha_gm)
                 st.text("Try using this value in the McCabe-Thiele Plotter!")
 
             model = st.selectbox("Choose a model",
-                                 ["Select", "Margules", "Redlich Kister", "Van Laar"])
+                                 ["Select", "Margules", "Redlich Kister", "van Laar", "Truncated Wohls"], key='model')
 
             if model == "Select":
                 st.info("Select a model")
             else:
-                MODELS = {"Margules": models.margules, "Redlich Kister": models.redlichkister, "Van Laar": models.vanlaar}
-                latest_iteration = st.empty()
-                bar = st.progress(0)
+                if model != "Truncated Wohls":
+                    MODELS = {"Margules": models.margules, "Redlich Kister": models.redlichkister,
+                              "van Laar": models.vanlaar}
+                    latest_iteration = st.empty()
+                    bar = st.progress(0)
 
-                for i in range(100):
-                    latest_iteration.text(f'{i + 1}%')
-                    bar.progress(i + 1)
-                    time.sleep(0.1)
+                    for i in range(100):
+                        latest_iteration.text(f'{i + 1}%')
+                        bar.progress(i + 1)
+                        time.sleep(0.03)
 
-                A, acc, fig4, fig5, fig6 = MODELS[model].main(x1, y1, P, G_e, x, p1_s, p2_s, T, P_raoult)
+                    A, acc, fig4, fig5, fig6 = MODELS[model].main(x1, y1, P, G_e, x, p1_s, p2_s, T, P_raoult)
 
-                if model == "Margules":
-                    st.write(r"$G^E = %0.3fx_1x_2$" % A)
-                if model == "Redlich Kister":
-                    st.write(r"$G^E = x_1x_2(%0.3f + (%0.3f)(x_1-x_2))$" % (A[0], A[1]))
-                if model == "Van Laar":
-                    st.write(r"$\frac{x_1x_2}{G^E} = \frac{x_1}{%0.3f} + \frac{x_2}{%0.3f}$" % (A[1], A[0]))
-                st.write(r"$R^2$ score = %0.3f" % acc)
-                st.write(fig4, fig5, fig6)
-
+                    if model == "Margules":
+                        st.write(r"$G^E = %0.3fx_1x_2$" % A)
+                    if model == "Redlich Kister":
+                        st.write(r"$G^E = x_1x_2(%0.3f + (%0.3f)(x_1-x_2))$" % (A[0], A[1]))
+                    if model == "van Laar":
+                        st.write(r"$\frac{x_1x_2}{G^E} = \frac{x_1}{%0.3f} + \frac{x_2}{%0.3f}$" % (A[1], A[0]))
+                    st.write(r"$R^2$ score = %0.3f" % acc)
+                    st.write(fig4, fig5, fig6)
+                else:
+                    A, acc, fig4, fig5, fig6 = models.wohls.main(x1, y1, P, gamma1, G_e, x, p1_s, p2_s, T, P_raoult, s1, s2)
+                    st.write(r"Molar volumes: $q_1=%0.3e$, $q_2=%0.3e$" % (q1, q2))
+                    st.write(r"$RTln(\gamma_1) = 2(%0.3f)q_1z_2^2$" % A)
+                    st.write(fig4, fig5, fig6)
     except:
         pass
 
     st.sidebar.title("Note")
     st.sidebar.info(""" The saturation pressures are obtained from 
-        [DDBST's database](http://ddbonline.ddbst.com/AntoineCalculation/AntoineCalculationCGI.exe?component=Ethanol).""")
+            [DDBST's database](http://ddbonline.ddbst.com/AntoineCalculation/AntoineCalculationCGI.exe?component=Ethanol).""")
+    st.sidebar.info(""" The densities are obtained from 
+                [DDBST's database](http://ddbonline.ddbst.de/DIPPR105DensityCalculation/DIPPR105CalculationCGI.exe?component=Diethyl%20ether).""")
     st.sidebar.info("These models can only be used for binary isothermal vapor-liquid equilibrium data.")
-
