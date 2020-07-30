@@ -8,7 +8,7 @@ from antoine import get_psat
 def isothermalPlots(x1, y1, P, p1_s, p2_s):
     style.use('classic')
 
-    x = np.linspace(0, 1, 6)
+    x = np.linspace(0, 1, 50)
 
     P_raoult = x * p1_s + (1 - x) * p2_s
     y_raoult = x * p1_s / P_raoult
@@ -20,7 +20,7 @@ def isothermalPlots(x1, y1, P, p1_s, p2_s):
     plt.xlabel(r'$x_1$')
     plt.ylabel(r'$P\ (kPa)$')
     plt.scatter(x1, P)
-    plt.plot(x, P_raoult, label=r"$Raoult's\ law$")
+    plt.plot(x, P_raoult, label=r"$Raoult's\ law$", color='black')
     plt.legend(loc='best', frameon=False)
 
     fig2 = plt.figure(facecolor='white')
@@ -31,7 +31,7 @@ def isothermalPlots(x1, y1, P, p1_s, p2_s):
     plt.xlabel(r'$x_1$')
     plt.ylabel(r'$y_1$')
     plt.scatter(x1, y1)
-    plt.plot(x, y_raoult, label=r"$Raoult's\ law$")
+    plt.plot(x, y_raoult, label=r"$Raoult's\ law$", color='black')
     plt.plot(x, x, color='black')
     plt.legend(loc='best', frameon=False)
 
@@ -41,7 +41,7 @@ def isothermalPlots(x1, y1, P, p1_s, p2_s):
 def isobaricPlots(x1, y1, T):
     style.use('classic')
 
-    x = np.linspace(0, 1, 6)
+    x = np.linspace(0, 1, 10)
 
     fig1 = plt.figure(facecolor='white')
     plt.title(r"$T-x-y$")

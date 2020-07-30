@@ -157,9 +157,19 @@ def main():
                     st.write(r"$R^2$ score = %0.3f" % acc)
                     st.write(fig4, fig5, fig6)
                 else:
-                    A, acc, fig4, fig5, fig6 = models.wohls.main(x1, y1, P, gamma1, G_e, x, p1_s, p2_s, T, P_raoult, s1, s2)
+                    latest_iteration = st.empty()
+                    bar = st.progress(0)
+
+                    for i in range(100):
+                        latest_iteration.text(f'{i + 1}%')
+                        bar.progress(i + 1)
+                        time.sleep(0.03)
+
+                    A, acc, fig4, fig5, fig6 = models.wohls.main(x1, y1, P, G_e, T, s1, s2)
+
                     st.write(r"Molar volumes: $q_1=%0.3e$, $q_2=%0.3e$" % (q1, q2))
-                    st.write(r"$RTln(\gamma_1) = 2(%0.3f)q_1z_2^2$" % A)
+                    st.write(r"$\frac{G^E/RT}{x_1q_1 + x_2q_2} = 2(%0.3f)z_1z_2$" % A)
+                    st.write(r"$R^2$ score = %0.3f" % acc)
                     st.write(fig4, fig5, fig6)
     except:
         pass

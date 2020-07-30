@@ -1,3 +1,4 @@
+import streamlit as st
 import scipy.constants as constants
 import numpy as np
 import scipy.optimize as opt
@@ -6,35 +7,47 @@ from sklearn import metrics
 import matplotlib.pyplot as plt
 from matplotlib import style
 from volume import get_volume
+from antoine import get_psat
 
 
-def main(x1, y1, P, gamma1, G_e, x, p1_s, p2_s, T, P_raoult, s1, s2):
-    class Wohls:
-        def gamma1(z, A):
-            return np.exp(2 * A * q1 * (1 - z) ** 2)
+class Wohls:
+    def __init__(self, s1, s2, T):
+        self.q1 = get_volume(s1, T)
+        self.q2 = get_volume(s2, T)
+        self.T = T
 
-        def gamma2(z, A):
-            return np.exp(2 * A * q2 * z ** 2)
+    def Ge(self, x1, A):
+        x1=np.asfarray(x1,float)
+        z1 = x1 * self.q1 / (x1 * self.q1 + (1 - x1) * self.q2)
+        z2 = (1 - x1) * self.q2 / (x1 * self.q1 + (1 - x1) * self.q2)
+        return constants.R * self.T * (x1 * self.q1 + (1 - x1) * self.q2) * (2 * A) * (z1 * z2)
 
-    def get_parameter(z, gamma1):
-        A, params_cov = opt.curve_fit(Wohls.gamma1, z, gamma1, p0=1000, maxfev=10000)
-        return A
+    def gamma1(self, z, A):
+        return np.exp(2 * A * self.q1 * (1 - z) ** 2)
+
+    def gamma2(self, z, A):
+        return np.exp(2 * A * self.q2 * z ** 2)
 
 
-    def get_accuracy(gamma1, wohls_gamma1):
-        return metrics.r2_score(gamma1, wohls_gamma1)
+@st.cache(suppress_st_warning=True)
+def get_parameter(x, G_e, s1, s2, T):
+    A, params_cov = opt.curve_fit(Wohls(s1, s2, T).Ge, x, G_e, p0=1000, maxfev=10000)
+    return A
 
 
+@st.cache(suppress_st_warning=True)
+def get_accuracy(G_e, Ge):
+    return metrics.r2_score(G_e, Ge)
+
+
+def main(x1, y1, P, G_e, T, s1, s2):
     style.use('classic')
 
-    q1, q2 = get_volume(s1, T), get_volume(s2, T)
-    z1 = x1 * q1 / (x1 * q1 + (1 - x1) * q2)
-    z = x * q1 / (x * q1 + (1 - x) * q2)
+    w = Wohls(s1, s2, T)
+    A = get_parameter(x1, G_e, s1, s2, T)
+    acc = get_accuracy(G_e, w.Ge(x1, A))
 
-    A = get_parameter(z1, gamma1)
-    acc = get_accuracy(gamma1, Wohls.gamma1(z1, A))
-
-    Ge = constants.R*T*(xlogy(x, Wohls.gamma1(z, A)) + xlogy(1-x, Wohls.gamma2(z, A)))
+    x = np.linspace(0, 1, 50)
 
     fig4 = plt.figure(facecolor='white')
     plt.title(r"$G^E-x$")
@@ -42,12 +55,20 @@ def main(x1, y1, P, gamma1, G_e, x, p1_s, p2_s, T, P_raoult, s1, s2):
     plt.xlabel(r'$x_1$')
     plt.ylabel(r'$G^E\ (J/mol)$')
     plt.scatter(x1, G_e)
-    plt.plot(x, Ge, label=r"$Wohls\ model$", color='red')
+    plt.plot(x, w.Ge(x, A), label=r"$Wohls\ model$", color='red')
     plt.axhline(0, color='black')
 
+    q1 = get_volume(s1, T)
+    q2 = get_volume(s2, T)
     z = x * q1 / (x * q1 + (1 - x) * q2)
-    P_Wohls = x * p1_s * Wohls.gamma1(z, A) + (1 - x) * p2_s * Wohls.gamma2(z, A)
-    y_Wohls = x * p1_s * Wohls.gamma1(z, A) / P_Wohls
+
+    p1_s = get_psat(s1, T)
+    p2_s = get_psat(s2, T)
+
+    P_Wohls = x * p1_s * w.gamma1(z, A) + (1 - x) * p2_s * w.gamma2(z, A)
+    y_Wohls = x * p1_s * w.gamma1(z, A) / P_Wohls
+
+    P_raoult = x * p1_s + (1 - x) * p2_s
 
     fig5 = plt.figure(facecolor='white')
     plt.title(r"$P-x$")
@@ -73,3 +94,7 @@ def main(x1, y1, P, gamma1, G_e, x, p1_s, p2_s, T, P_raoult, s1, s2):
     plt.legend(loc='best', fontsize=10)
 
     return A, acc, fig4, fig5, fig6
+
+
+
+
