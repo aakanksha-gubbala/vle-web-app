@@ -50,7 +50,7 @@ def main(x1, y1, P, G_e, x, p1_s, p2_s, T, P_raoult):
     fig5 = plt.figure(facecolor='white')
     plt.title(r"$P-x$")
     plt.xlim(0, 1)
-    plt.ylim(0, 1.2 * max(P))
+    plt.ylim(0, 1.2 * max(P_VanLaar))
     plt.xlabel(r'$x_1$')
     plt.ylabel(r'$P\ (kPa)$')
     plt.scatter(x1, P)
