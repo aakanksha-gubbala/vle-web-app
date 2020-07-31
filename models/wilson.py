@@ -3,6 +3,7 @@ import numpy as np
 import scipy.constants as constants
 from scipy.special import xlogy
 from antoine import get_psat
+import scipy.optimize as opt
 from volume import get_volume
 
 

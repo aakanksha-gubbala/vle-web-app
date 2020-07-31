@@ -21,8 +21,7 @@ def main():
                  'Diethyl ether', 'Ethyl acetate', 'Benzene', '1-Butanol',
                  'Chloroform', 'Cyclohexane', 'Acetic acid butyl ester', 'Acetic acid',
                  'Hexane', '2-Propanol', '1-Hexene', 'Methanol',
-                 'Tetrahydrofuran', 'Water', 'm-Xylene', 'p-Xylene',
-                 'N-Methyl-2-pyrrolidone', '1,3-Butadiene', 'Hexadecane']
+                 'Tetrahydrofuran', 'Water', 'm-Xylene', 'p-Xylene', '1,3-Butadiene', 'Hexadecane']
 
     menu_options = compounds.copy()
 
