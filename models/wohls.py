@@ -17,7 +17,7 @@ class Wohls:
         self.T = T
 
     def Ge(self, x1, A):
-        x1=np.asfarray(x1,float)
+        x1 = np.asfarray(x1, float)
         z1 = x1 * self.q1 / (x1 * self.q1 + (1 - x1) * self.q2)
         z2 = (1 - x1) * self.q2 / (x1 * self.q1 + (1 - x1) * self.q2)
         return constants.R * self.T * (x1 * self.q1 + (1 - x1) * self.q2) * (2 * A) * (z1 * z2)
@@ -28,24 +28,24 @@ class Wohls:
     def gamma2(self, z, A):
         return np.exp(2 * A * self.q2 * z ** 2)
 
+    @st.cache(suppress_st_warning=True)
+    def get_parameter(self, x, G_e):
+        A, params_cov = opt.curve_fit(self.Ge, x, G_e, p0=1000, maxfev=10000)
+        return A
 
-@st.cache(suppress_st_warning=True)
-def get_parameter(x, G_e, s1, s2, T):
-    A, params_cov = opt.curve_fit(Wohls(s1, s2, T).Ge, x, G_e, p0=1000, maxfev=10000)
-    return A
-
-
-@st.cache(suppress_st_warning=True)
-def get_accuracy(G_e, Ge):
-    return metrics.r2_score(G_e, Ge)
+    @st.cache(suppress_st_warning=True)
+    def get_accuracy(self, G_e, x1):
+        A = self.get_parameter(x1, G_e)
+        Ge = self.Ge(x1, A)
+        return metrics.r2_score(G_e, Ge)
 
 
 def main(x1, y1, P, G_e, T, s1, s2):
     style.use('classic')
 
     w = Wohls(s1, s2, T)
-    A = get_parameter(x1, G_e, s1, s2, T)
-    acc = get_accuracy(G_e, w.Ge(x1, A))
+    A = w.get_parameter(x1, G_e)
+    acc = w.get_accuracy(G_e, x1)
 
     x = np.linspace(0, 1, 50)
 
@@ -94,7 +94,3 @@ def main(x1, y1, P, G_e, T, s1, s2):
     plt.legend(loc='best', fontsize=10)
 
     return A, acc, fig4, fig5, fig6
-
-
-
-

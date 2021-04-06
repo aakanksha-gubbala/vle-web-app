@@ -8,32 +8,32 @@ from matplotlib import style
 
 
 class RK2:
-    def Ge(x, A, B):
+    def Ge(self, x, A, B):
         return x * (1 - x) * (A + B * (x - (1 - x)))
 
-    def gamma1(x, A, B, T):
+    def gamma1(self, x, A, B, T):
         return np.exp((A - B + 4 * B * x) * (1 - x) ** 2 / (constants.R * T))
 
-    def gamma2(x, A, B, T):
+    def gamma2(self, x, A, B, T):
         return np.exp((A + B - 4 * B * (1 - x)) * (x) ** 2 / (constants.R * T))
 
+    @st.cache(suppress_st_warning=True)
+    def get_parameter(self, x, G_e):
+        [A, B], params_cov = opt.curve_fit(self.Ge, x, G_e, p0=[1000, 1000], maxfev=10000)
+        return [A, B]
 
-@st.cache(suppress_st_warning=True)
-def get_parameter(x, G_e):
-    [A, B], params_cov = opt.curve_fit(RK2.Ge, x, G_e, p0=[1000,1000], maxfev=10000)
-    return [A, B]
-
-
-@st.cache(suppress_st_warning=True)
-def get_accuracy(G_e, Ge):
-    return metrics.r2_score(G_e, Ge)
+    @st.cache(suppress_st_warning=True)
+    def get_accuracy(self, G_e, x1):
+        [A, B] = self.get_parameter(x1, G_e)
+        Ge = self.Ge(x1, A, B)
+        return metrics.r2_score(G_e, Ge)
 
 
 def main(x1, y1, P, G_e, x, p1_s, p2_s, T, P_raoult):
     style.use('classic')
 
-    [A, B] = get_parameter(x1, G_e)
-    acc = get_accuracy(G_e, RK2.Ge(x1, A, B))
+    [A, B] = RK2().get_parameter(x1, G_e)
+    acc = RK2().get_accuracy(G_e, x1)
 
     fig4 = plt.figure(facecolor='white')
     plt.title(r"$G^E-x$")
@@ -41,11 +41,11 @@ def main(x1, y1, P, G_e, x, p1_s, p2_s, T, P_raoult):
     plt.xlabel(r'$x_1$')
     plt.ylabel(r'$G^E\ (J/mol)$')
     plt.scatter(x1, G_e)
-    plt.plot(x, RK2.Ge(x, A, B), label=r"$RK2\ model$", color='red')
+    plt.plot(x, RK2().Ge(x, A, B), label=r"$RK2\ model$", color='red')
     plt.axhline(0, color='black')
 
-    P_rk = x * p1_s * RK2.gamma1(x, A, B, T) + (1 - x) * p2_s * RK2.gamma2(x, A, B, T)
-    y_rk = x * p1_s * RK2.gamma1(x, A, B, T) / P_rk
+    P_rk = x * p1_s * RK2().gamma1(x, A, B, T) + (1 - x) * p2_s * RK2().gamma2(x, A, B, T)
+    y_rk = x * p1_s * RK2().gamma1(x, A, B, T) / P_rk
 
     fig5 = plt.figure(facecolor='white')
     plt.title(r"$P-x$")
@@ -71,6 +71,3 @@ def main(x1, y1, P, G_e, x, p1_s, p2_s, T, P_raoult):
     plt.legend(loc='best', fontsize=10)
 
     return [A, B], acc, fig4, fig5, fig6
-
-
-

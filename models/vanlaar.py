@@ -8,32 +8,31 @@ from matplotlib import style
 
 
 class VanLaar:
-    def Ge(x, A, B):
+    def Ge(self, x, A, B):
         return A * B * x * (1-x) / (A * x + B * (1-x))
 
-    def gamma1(x, A, B, T):
+    def gamma1(self, x, A, B, T):
         return np.exp(A / ((constants.R * T) * (1 + (A * x) / (B * (1 - x))) ** 2))
 
-    def gamma2(x, A, B, T):
+    def gamma2(self, x, A, B, T):
         return np.exp(B / ((constants.R * T) * (1 + (B * (1 - x)) / (A * x)) ** 2))
 
+    @st.cache(suppress_st_warning=True)
+    def get_parameter(self, x, G_e):
+        [A, B], params_cov = opt.curve_fit(self.Ge, x, G_e, p0=[1000,1000], maxfev=10000)
+        return [A, B]
 
-@st.cache(suppress_st_warning=True)
-def get_parameter(x, G_e):
-    [A, B], params_cov = opt.curve_fit(VanLaar.Ge, x, G_e, p0=[1000,1000], maxfev=10000)
-    return [A, B]
-
-
-@st.cache(suppress_st_warning=True)
-def get_accuracy(G_e, Ge):
-    return metrics.r2_score(G_e, Ge)
+    @st.cache(suppress_st_warning=True)
+    def get_accuracy(self, G_e, x1):
+        [A, B] = self.get_parameter(x1, G_e)
+        return metrics.r2_score(G_e, self.Ge(x1, A, B))
 
 
 def main(x1, y1, P, G_e, x, p1_s, p2_s, T, P_raoult):
     style.use('classic')
 
-    [A, B] = get_parameter(x1, G_e)
-    acc = get_accuracy(G_e, VanLaar.Ge(x1, A, B))
+    [A, B] = VanLaar().get_parameter(x1, G_e)
+    acc = VanLaar().get_accuracy(G_e, x1)
 
     fig4 = plt.figure(facecolor='white')
     plt.title(r"$G^E-x$")
@@ -41,11 +40,11 @@ def main(x1, y1, P, G_e, x, p1_s, p2_s, T, P_raoult):
     plt.xlabel(r'$x_1$')
     plt.ylabel(r'$G^E\ (J/mol)$')
     plt.scatter(x1, G_e)
-    plt.plot(x, VanLaar.Ge(x, A, B), label=r"$Van Laar\ model$", color='red')
+    plt.plot(x, VanLaar().Ge(x, A, B), label=r"$Van Laar\ model$", color='red')
     plt.axhline(0, color='black')
 
-    P_VanLaar = x * p1_s * VanLaar.gamma1(x, A, B, T) + (1 - x) * p2_s * VanLaar.gamma2(x, A, B, T)
-    y_VanLaar = x * p1_s * VanLaar.gamma1(x, A, B, T) / P_VanLaar
+    P_VanLaar = x * p1_s * VanLaar().gamma1(x, A, B, T) + (1 - x) * p2_s * VanLaar().gamma2(x, A, B, T)
+    y_VanLaar = x * p1_s * VanLaar().gamma1(x, A, B, T) / P_VanLaar
 
     fig5 = plt.figure(facecolor='white')
     plt.title(r"$P-x$")
