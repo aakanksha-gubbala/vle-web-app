@@ -3,13 +3,13 @@ import numpy as np
 from matplotlib import pyplot, style
 from scipy.optimize import fsolve
 
-
 np.seterr(divide='ignore', invalid='ignore')
 
 
 def main():
     st.title('McCabe-Thiele Plot Generator')
-    st.write('The McCabe-Thiele method is used to determine the number of equilibrium stages for a distillation column.')
+    st.write(
+        'The McCabe-Thiele method is used to determine the number of equilibrium stages for a distillation column.')
 
     style.use('classic')
 
@@ -22,10 +22,8 @@ def main():
         q = st.number_input('Thermal Quality', value=1.000)
         a = st.number_input('Relative Volatility', value=2.500)
 
-
         def dbf(f):
             return [xd * f[0] + xb * f[1] - zf * F, f[0] + f[1] - F]
-
 
         [D, B] = fsolve(dbf, [30, 20])
 
@@ -36,33 +34,26 @@ def main():
         Vr = Lr + D
         Vs = Vr + (q - 1) * F
 
-
         def x_eq(x):
             # x on the equlibrium curve
             return x / (a * (1 - x) + x)
-
 
         def rec_opline(x):
             # rectifying section operating line: y = (Lr/Vr)*x + (D*xd/Vr)
             return (Lr / Vr) * x + (D * xd / Vr)
 
-
         def strip_opline(x):
             # stripping section operating line: y = (Ls/Vs)*x - (B*xb/Vs)
             return (Ls / Vs) * x - (B * xb / Vs)
-
 
         # intersection point of rectifying opline and stripping opline
         def inter_pt(p):
             return [(Lr / Vr) * p[0] + (D * xd / Vr) - p[1], (Ls / Vs) * p[0] - (B * xb / Vs) - p[1]]
 
-
         [xq, yq] = fsolve(inter_pt, [0.5, 0.5])
-
 
         def min_reflux(x):
             return [q * x[0] - zf - x[1] * (q - 1), x[1] - a * x[0] / (1 + x[0] * (a - 1))]
-
 
         [xrmin, yrmin] = fsolve(min_reflux, [0.5, 0.6])
 
@@ -121,11 +112,9 @@ def main():
         xb_tr = st.number_input('Bottom concentration', value=0.100)
         a_tr = st.number_input('Relative Volatility (average)', value=2.500)
 
-
         def x_eq(x):
             # x on the equlibrium curve
             return x / (a_tr * (1 - x) + x)
-
 
         # y-x equilibrium curve
         x = np.linspace(0, 1, 10000)

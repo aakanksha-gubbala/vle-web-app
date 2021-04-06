@@ -21,4 +21,3 @@ def get_density(s, T):
         def rho(T):
             return A / B ** (1 + (1 - T / C) ** D)
     return rho(T) if s != 'Hexane' else rho
-
