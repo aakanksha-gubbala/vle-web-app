@@ -18,6 +18,6 @@ Tetrahydrofuran!72.1057
 Water!18.0153
 m-Xylene!106.1650
 p-Xylene!106.1650
-N-Methyl-2-pyrrolidone!99.1311
+N-Methyl-2-pyrrolidone!99.1310
 1,3-Butadiene!54.0904
 Hexadecane!226.4412
