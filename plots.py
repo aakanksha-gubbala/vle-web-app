@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib import style
 import numpy as np
-import scipy.optimize as opt
+# import scipy.optimize as opt
 from antoine import get_psat
 
 
