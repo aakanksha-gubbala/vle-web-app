@@ -17,12 +17,12 @@ class Margules:
     def gamma2(self, x, A, T):
         return np.exp(A * x ** 2 / (constants.R * T))
 
-    @st.cache(suppress_st_warning=True)
+    # @st.cache(suppress_st_warning=True)
     def get_parameter(self, x, G_e):
         A, params_cov = opt.curve_fit(self.Ge, x, G_e, p0=1000, maxfev=10000)
         return A
 
-    @st.cache(suppress_st_warning=True)
+    # @st.cache(suppress_st_warning=True)
     def get_accuracy(self, G_e, x1):
         A = self.get_parameter(x1, G_e)
         Ge = self.Ge(x1, A)

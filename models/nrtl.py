@@ -17,12 +17,12 @@ class nrtl:
     def gamma2(self, x, A, B, T):
         return np.exp(B / ((constants.R * T) * (1 + (B * (1 - x)) / (A * x)) ** 2))
 
-    @st.cache(suppress_st_warning=True)
+    # @st.cache(suppress_st_warning=True)
     def get_parameter(self, x, G_e):
         [A, B], params_cov = opt.curve_fit(self.Ge, x, G_e, p0=[1000, 1000], maxfev=10000)
         return [A, B]
 
-    @st.cache(suppress_st_warning=True)
+    # @st.cache(suppress_st_warning=True)
     def get_accuracy(self, G_e, x1):
         [A, B] = self.get_parameter(x1, G_e)
         return metrics.r2_score(G_e, self.Ge(x1, A, B))

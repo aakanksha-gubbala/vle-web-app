@@ -38,7 +38,7 @@ def main():
 
     st.info("You have chosen %s and %s" % (compound1, compound2))
 
-    @st.cache(suppress_st_warning=True)
+    # @st.cache(suppress_st_warning=True)
     def link_generator(i1, i2):
         url = 'http://www.ddbst.com/en/EED/VLE/VLE%20' + compounds[i1] + '%3B' + compounds[i2] + '.php'
         if requests.get(url).status_code == 404:

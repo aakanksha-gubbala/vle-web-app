@@ -17,12 +17,12 @@ class RK2:
     def gamma2(self, x, A, B, T):
         return np.exp((A + B - 4 * B * (1 - x)) * (x) ** 2 / (constants.R * T))
 
-    @st.cache(suppress_st_warning=True)
+    # @st.cache(suppress_st_warning=True)
     def get_parameter(self, x, G_e):
         [A, B], params_cov = opt.curve_fit(self.Ge, x, G_e, p0=[1000, 1000], maxfev=10000)
         return [A, B]
 
-    @st.cache(suppress_st_warning=True)
+    # @st.cache(suppress_st_warning=True)
     def get_accuracy(self, G_e, x1):
         [A, B] = self.get_parameter(x1, G_e)
         Ge = self.Ge(x1, A, B)
