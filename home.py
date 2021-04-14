@@ -7,7 +7,7 @@ def main():
     st.subheader("Get VLE data from [DDBST's](http://www.ddbst.com/en/EED/VLE/VLEindex.php) online database")
     st.write("The algorithm scours through all the vapor-liquid equilibrium data at DDBST and"
              " finds the complete VLE data of the chosen pair of compounds")
-    st.image('ddbst_site.png', width=750)
+    # st.image('ddbst_site.png', width=750)
 
     st.subheader("Try different correlative models ")
     st.write("Note: These models can only be used for binary isothermal vapor-liquid equilibrium data.")
