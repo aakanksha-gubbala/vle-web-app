@@ -12,7 +12,7 @@ import lxml
 
 
 def main():
-    st.title("Isothermal VLE Data")
+    st.title("Isothermal Binary VLE Data")
     st.write(
         """ The *Margules* model, *Redlich-Kister Expansion* truncated to two terms, *van Laar* model and the *Truncated Wohls expansion* are implemented here. """
         r"In case $\alpha$ fits the data with an accuracy of 80% or above, the $\alpha_{GM}$ value is displayed.")

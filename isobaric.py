@@ -5,13 +5,16 @@ from matplotlib import style
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
+import scipy.optimize
 import scipy.constants as constants
 from scipy.special import xlogy
 from antoine import get_psat
-import models.wilson
 from sklearn import metrics
 import lxml
 import html5lib
+from models.uniquac import *
+import time
+from scipy.interpolate import make_interp_spline
 
 
 def main():
@@ -26,8 +29,7 @@ def main():
                  'Diethyl ether', 'Ethyl acetate', 'Benzene', '1-Butanol',
                  'Chloroform', 'Cyclohexane', 'Acetic acid butyl ester', 'Acetic acid',
                  'Hexane', '2-Propanol', '1-Hexene', 'Methanol',
-                 'Tetrahydrofuran', 'Water', 'm-Xylene', 'p-Xylene',
-                 'N-Methyl-2-pyrrolidone', '1,3-Butadiene', 'Hexadecane']
+                 'Water', 'm-Xylene', 'p-Xylene', 'Hexadecane']
 
     menu_options = compounds.copy()
 
@@ -105,6 +107,9 @@ def main():
             p1_s = get_psat(s1, T)
             p2_s = get_psat(s2, T)
 
+            Tmin = min(T)
+            Tmax = max(T)
+
             try:
                 if x1[0] == 0 and x1[n_points] != 1:
                     x1, y1, T = x1[1:], y1[1:], T[1:]
@@ -122,7 +127,46 @@ def main():
                 gamma1.append(np.divide(P * y1[i], x1[i] * p1_s[i]))
                 gamma2.append(np.divide(P * (1 - y1[i]), (1 - x1[i]) * p2_s[i]))
 
-            G_e = constants.R * T * (xlogy(x1, gamma1) + xlogy(1 - x1, gamma2))
+            # G_e = constants.R * T * (xlogy(x1, gamma1) + xlogy(1 - x1, gamma2))
+
+            X = [x1, T]
+            gamma = np.concatenate((gamma1, gamma2))
+
+            st.write("Fitting parameters for the UNIQUAC model:")
+            # latest_iteration = st.empty()
+            # bar = st.progress(0)
+            #
+            # for i in range(100):
+            #     latest_iteration.text(f'{i + 1}%')
+            #     bar.progress(i + 1)
+            #     time.sleep(0.02)
+
+            uniquac = UNIQUAC(s1, s2)
+            params = uniquac.get_parameter(X, gamma)
+            cost = params['cost']
+            A = params['x'][0]
+            B = params['x'][1]
+
+            st.write(r"$u_{12} - u_{22}$ = %0.2f, $u_{21} - u_{11}$ = %0.2f" % (A, B))
+            st.write(r"Sum of squared errors = %0.3f" % cost)
+
+            n = 20
+            x_pred = np.linspace(0.001, 0.999, n)
+            T_guess = np.linspace(Tmin, Tmax, n)
+
+            def residuals(T):
+                return uniquac.gamma1([x_pred, T], A, B) * x_pred * get_psat(s1, T) + \
+                       uniquac.gamma2([x_pred, T], A, B) * (1 - x_pred) * get_psat(s2, T) - np.ones(n) * P
+
+            T_pred = scipy.optimize.newton(residuals, T_guess)
+            X_pred = [x_pred, T_pred]
+
+            gamma1_pred = uniquac.gamma1(X_pred, A, B)
+            gamma2_pred = uniquac.gamma2(X_pred, A, B)
+
+            y_pred = np.zeros(n)
+            for i in range(n):
+                y_pred[i] = gamma1_pred[i] * x_pred[i] * get_psat(s1, T_pred[i]) / P
 
             fig1 = plt.figure(facecolor='white')
             plt.gca().set_aspect('equal', adjustable='box')
@@ -132,7 +176,9 @@ def main():
             plt.xlabel(r'$x_1$')
             plt.ylabel(r'$y_1$')
             plt.scatter(x1, y1)
+            plt.plot(x_pred, y_pred, 'b')
             plt.plot(x, x, color='grey')
+            plt.legend(loc='best', fontsize=8, frameon=False)
 
             st.write(fig1)
 
@@ -144,28 +190,29 @@ def main():
             plt.ylabel(r'$T\ (K)$')
             plt.scatter(x1, T, label=r'$x_1$', color='blue')
             plt.scatter(y1, T, label=r'$y_1$', color='green')
-            plt.legend(loc='best', fontsize=10, frameon=False)
+            plt.plot(x_pred, T_pred, 'b')
+            plt.plot(y_pred, T_pred, 'g')
+            plt.legend(loc='best', fontsize=8, frameon=False)
 
             st.write(fig2)
 
-            model = st.selectbox('Choose a model', ['Select', 'NRTL'])
-            if model == "Select":
-                st.info("Select a model")
-            if model == 'NRTL':
-                st.info("Under development ...")
+            fig3 = plt.figure(facecolor='white')
+            plt.title(r"$\gamma-x$")
+            plt.xlim(0, 1)
+            # plt.ylim(0.98 * min(gamma), 1.02 * max(gamma))
+            plt.xlabel(r'$x_1$')
+            plt.ylabel(r'$\gamma$')
+            plt.scatter(x1, gamma1, label=r'$\gamma_1$', color='blue')
+            plt.plot(x_pred, gamma1_pred, color='blue')
+            plt.scatter(x1, gamma2, label=r'$\gamma_2$', color='green')
+            plt.plot(x_pred, gamma2_pred, color='green')
+            plt.legend(loc='best', fontsize=8, frameon=False)
+
+            st.write(fig3)
+
     except:
         ''
 
     st.sidebar.title("Note")
     st.sidebar.info(""" The saturation pressures are obtained from 
             [DDBST's database](http://ddbonline.ddbst.com/AntoineCalculation/AntoineCalculationCGI.exe?component=Ethanol).""")
-
-
-
-'''[theme]
-primaryColor="#0013f7"
-backgroundColor="#ffffff"
-secondaryBackgroundColor="#12e279"
-textColor="#000000"
-font="monospace"   
-'''
