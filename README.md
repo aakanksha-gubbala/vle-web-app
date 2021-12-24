@@ -6,4 +6,3 @@ Binary vapor-liquid equlibrium data of 30 Important Components from [Dortmund Da
 
 Here's the link: 
 * Heroku app : [chem-engg-tools.herokuapp.com](https://chem-engg-tools.herokuapp.com)
-* Streamlit sharing : [share.streamlit.io/kraanky/vle-web-app/app.py](https://share.streamlit.io/kraanky/vle-web-app/app.py)
