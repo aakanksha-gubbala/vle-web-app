@@ -8,7 +8,7 @@ import requests
 import scipy.optimize
 import scipy.constants as constants
 from scipy.special import xlogy
-from antoine import get_psat
+from antoine import get_psat, get_Antoine_params
 from sklearn import metrics
 import lxml
 import html5lib
@@ -21,7 +21,7 @@ def main():
     st.title('Isobaric Binary VLE Data')
     st.markdown("Vapor-liquid equlibrium data of 30 important components from "
                 "[Dortmund Data Bank](http://www.ddbst.com/en/EED/VLE/VLEindex.php) can be accessed from here. "
-                "Find out which pair of components have isobaric data available and see the $y-x$, $T-x-y$ and $G^E-x$ graphs.")
+                "Find out which pair of components have isobaric data available and see the $y-x$, $T-x-y$ and $\gamma-x$ graphs.")
 
     style.use("classic")
 
@@ -150,13 +150,20 @@ def main():
             st.write(r"$u_{12} - u_{22}$ = %0.2f, $u_{21} - u_{11}$ = %0.2f" % (A, B))
             st.write(r"Sum of squared errors = %0.3f" % cost)
 
-            n = 20
+            n = 18
             x_pred = np.linspace(0.001, 0.999, n)
             T_guess = np.linspace(Tmin, Tmax, n)
 
+            antoine1 = get_Antoine_params(s1)
+            antoine2 = get_Antoine_params(s2)
+
+            def psat(antoine, T):
+                [A, B, C] = antoine
+                return (101.325 / 760) * np.power(10, A - B / (T - 273.15 + C))  # in kPa
+
             def residuals(T):
-                return uniquac.gamma1([x_pred, T], A, B) * x_pred * get_psat(s1, T) + \
-                       uniquac.gamma2([x_pred, T], A, B) * (1 - x_pred) * get_psat(s2, T) - np.ones(n) * P
+                return uniquac.gamma1([x_pred, T], A, B) * x_pred * psat(antoine1, T) + \
+                       uniquac.gamma2([x_pred, T], A, B) * (1 - x_pred) * psat(antoine2, T) - np.ones(n) * P
 
             T_pred = scipy.optimize.newton(residuals, T_guess)
             X_pred = [x_pred, T_pred]

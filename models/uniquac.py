@@ -1,4 +1,3 @@
-# import streamlit as st
 import scipy.constants as constants
 import numpy as np
 import scipy.optimize as opt
@@ -26,8 +25,7 @@ class UNIQUAC:
         self.s2 = s2
         self.r, self.q = get_params(self.s1, self.s2)
 
-
-    def gamma1(self, X, A, B):
+    def params(self, X):
         [x, T] = X
         self.phi1 = x * self.r[0] / (x * self.r[0] + (1 - x) * self.r[1])
         self.theta1 = x * self.q[0] / (x * self.q[0] + (1 - x) * self.q[1])
@@ -35,7 +33,12 @@ class UNIQUAC:
         self.phi2 = 1 - self.phi1
         self.l1 = 5 * (self.r[0] - self.q[0]) - (self.r[0] - 1)
         self.l2 = 5 * (self.r[1] - self.q[1]) - (self.r[1] - 1)
-        ln_gam_c1 = np.log(self.phi1 / x) + 5 * self.q[0] * np.log(self.theta1 / self.phi1) + self.l1 - self.phi1 / x * (x * self.l1 + (1 - x) * self.l2)
+
+    def gamma1(self, X, A, B):
+        [x, T] = X
+        self.params(X)
+        ln_gam_c1 = np.log(self.phi1 / x) + 5 * self.q[0] * np.log(
+            self.theta1 / self.phi1) + self.l1 - self.phi1 / x * (x * self.l1 + (1 - x) * self.l2)
         gam_c1 = np.exp(ln_gam_c1)
 
         tau12 = np.exp(-A / (R * T))
@@ -49,6 +52,7 @@ class UNIQUAC:
 
     def gamma2(self, X, A, B):
         [x, T] = X
+        self.params(X)
         ln_gam_c2 = np.log(self.phi2 / (1 - x)) + 5 * self.q[1] * np.log(self.theta2 / self.phi2) + self.l2 - \
                     self.phi2 / (1 - x) * (x * self.l1 + (1 - x) * self.l2)
         gam_c2 = np.exp(ln_gam_c2)
@@ -67,8 +71,6 @@ class UNIQUAC:
         residuals = (np.concatenate((self.gamma1(X, A, B), self.gamma2(X, A, B))) - gamma) / gamma
         return residuals
 
-    # @st.cache(suppress_st_warning=True)
     def get_parameter(self, X, gamma):
         params = opt.least_squares(self.costfunction, [1000, 1000], args=(X, gamma))
         return params
-
