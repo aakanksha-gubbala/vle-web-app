@@ -14,5 +14,4 @@ with st.spinner(f'Loading {selection} ...'):
     PAGES[selection].main()
 
 st.sidebar.title("About")
-st.sidebar.info(""" This is an open source project maintained by [kraanky](https://kraanky.github.io/). 
-Here's the [link](https://github.com/kraanky/vle-web-app) to the source code.""")
+st.sidebar.info("""Here's the [link](https://github.com/aakanksha-gubbala/vle-web-app) to the source code.""")
