@@ -38,9 +38,9 @@ def main():
     st.info("You have chosen %s and %s" % (compound1, compound2))
 
     def link_generator(i1, i2):
-        url = 'http://www.ddbst.com/en/EED/VLE/VLE%20' + compounds[i1] + '%3B' + compounds[i2] + '.php'
+        url = 'https://web.archive.org/web/20200220211155/http://www.ddbst.com/en/EED/VLE%20' + compounds[i1] + '%3B' + compounds[i2] + '.php'
         if requests.get(url).status_code == 404:
-            url = 'http://www.ddbst.com/en/EED/VLE/VLE%20' + compounds[i2] + '%3B' + compounds[i1] + '.php'
+            url = 'https://web.archive.org/web/20200220211155/http://www.ddbst.com/en/EED/VLE%20' + compounds[i2] + '%3B' + compounds[i1] + '.php'
         return url
 
     try:
